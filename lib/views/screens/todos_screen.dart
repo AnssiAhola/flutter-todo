@@ -1,6 +1,8 @@
 import 'dart:collection';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:todo/bloc/todos/todos_bloc.dart';
 import 'package:todo/constants/styles.dart';
 import 'package:todo/models/todo.dart';
 import 'package:todo/views/components/add_todo.dart';
@@ -16,9 +18,6 @@ class TodosScreen extends StatefulWidget {
 }
 
 class _TodosScreenState extends State<TodosScreen> {
-  final _todos = SplayTreeSet<Todo>();
-  String _filter = "";
-  final _filtered = <Todo>[];
   final _todoController = TextEditingController();
 
   @override
@@ -28,10 +27,17 @@ class _TodosScreenState extends State<TodosScreen> {
       appBar: buildAppBar(),
       body: Column(
         children: [
-          SearchBox(onSearch: _applyFilter),
-          Expanded(
-            child: _buildList(),
-          ),
+          SearchBox(onSearch: _search),
+          Expanded(child: BlocBuilder<TodosBloc, TodosState>(
+            builder: (context, state) {
+              if (state is TodosLoaded) {
+                return _buildList(state.todos);
+              }
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            },
+          )),
           AddTodoWidget(
             onAdd: _addTodo,
             controller: _todoController,
@@ -41,58 +47,34 @@ class _TodosScreenState extends State<TodosScreen> {
     );
   }
 
-  void _applyFilter(String value) {
-    _filter = value.toLowerCase();
-    _filtered.clear();
-    if (_filter.isNotEmpty) {
-      for (Todo todo in _todos) {
-        if (todo.title.toLowerCase().contains(_filter)) {
-          _filtered.add(todo);
-        }
-      }
-    }
-    setState(() {});
+  void _search(String searchTerm) {
+    context.read<TodosBloc>().add(SearchTodos(searchTerm));
   }
 
   void _toggleTodo(Todo todo) {
-    setState(() {
-      todo.completed = !todo.completed;
-    });
+    todo.toggleCompleted();
+    context.read<TodosBloc>().add(UpdateTodo(todo: todo));
   }
 
-  void _deleteTodo(String id) {
-    setState(() {
-      _todos.removeWhere((Todo todo) => todo.id == id);
-    });
+  void _deleteTodo(Todo todo) {
+    context.read<TodosBloc>().add(DeleteTodo(todo: todo));
   }
 
   void _addTodo() {
-    setState(() {
-      final String title = _todoController.text;
-      if (title.isNotEmpty) {
-        _todos.add(Todo.create(title));
-        // Hides keyboard
-        FocusManager.instance.primaryFocus?.unfocus();
-      }
-      _todoController.clear();
-    });
+    final String title = _todoController.text;
+    if (title.isNotEmpty) {
+      context.read<TodosBloc>().add(AddTodo(todo: Todo.create(title)));
+      // Hides keyboard
+      FocusManager.instance.primaryFocus?.unfocus();
+    }
+    _todoController.clear();
   }
 
-  Widget _buildList() {
-    if (_filter.isEmpty && _todos.isEmpty) {
-      return const Center(
-        child: Text("No todos added, add one below"),
-      );
-    }
-    Iterable todos = _todos;
-    if (_filtered.isNotEmpty || _filter.isNotEmpty) {
-      todos = _filtered;
-    }
+  Widget _buildList(SplayTreeSet<Todo> todos) {
     if (todos.isEmpty) {
-      return const Center(
-        child: Text("No todos found"),
-      );
+      return const Center(child: Text("No todos found"));
     }
+
     return ListView.builder(
       itemCount: todos.length,
       itemBuilder: (BuildContext context, int index) {

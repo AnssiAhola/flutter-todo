@@ -1,5 +1,9 @@
 import 'package:uuid/uuid.dart';
+import 'package:json_annotation/json_annotation.dart';
 
+part "todo.g.dart";
+
+@JsonSerializable()
 class Todo implements Comparable {
   String id;
   String title;
@@ -20,6 +24,14 @@ class Todo implements Comparable {
       created: DateTime.now(),
       completed: completed,
     );
+  }
+
+  factory Todo.fromJson(Map<String, dynamic> json) => _$TodoFromJson(json);
+
+  Map<String, dynamic> toJson() => _$TodoToJson(this);
+
+  void toggleCompleted() {
+    completed = !completed;
   }
 
   @override

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class SearchBox extends StatelessWidget {
-  final Function(String value) onSearch;
+  final Function(String searchTerm) onSearch;
 
   const SearchBox({
     super.key,
@@ -15,6 +15,9 @@ class SearchBox extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 15),
       decoration: BoxDecoration(
         color: Colors.white,
+        boxShadow: const [
+          BoxShadow(color: Colors.grey, blurRadius: 8),
+        ],
         borderRadius: BorderRadius.circular(20),
       ),
       child: TextField(
